@@ -38,6 +38,12 @@ def signal_handler(signum, frame):
 	sys.exit(0)
 
 
+def runtime(starttime):
+	while 1:
+		if GPIO.input(26) == 1:
+			endtime = starttime - time.time()
+			print('It took ', endtime, ' to run the process.')
+			break
 
 
 
@@ -87,17 +93,17 @@ def emailalert():
 	server.quit()
 	print('\nEmail has been sent!\n')
 	time.sleep(30)
-	return
+
 
 def gpio_falling(pin):
-	time.sleep(5)
-	print('\nEvent detected\n')
+	print('Event detected at ', door_timestamp(0))
+	starttime = time.time()
 	emailalert()
+	runtime(starttime)
+	GPIO.wait_for_edge(26, GPIO.RISING)
 	return
 
 GPIO.add_event_callback(26, gpio_falling)
-
-
 
 try:
 	print('started...\n')
