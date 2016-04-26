@@ -18,9 +18,11 @@ GPIO.setwarnings(False)
 # Sets the variable door_pin to GPGPIO 26
 door_pin = 26
 
-GPIO.setup(26, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-var = 1
+GPIO.setup(26, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+GPIO.remove_event_detect(door_pin)
+GPIO.add_event_detect(26, GPIO.FALLING)
 
+var = 1
 
 '''
 ####################### SIGNAL HANDLER TO CATCH CTRL+C   ##########################
@@ -29,22 +31,18 @@ var = 1
 '''
 
 
-def signal_handler(signal, frame):
+
+def signal_handler(signum, frame):
 	print("Ctrl+C detected...")
 	GPIO.cleanup()
 	sys.exit(0)
 
 
-####################### EMAIL CREATGPION SECTGPION START ##########################
-# This code is used to email out a notificatGPIOn if the magnetic door sensor has #
-# been triggered.                                                                 #
-# Begin mail setup, this code is written for GMAIL but you could easily re-write  #
-# the current code by changing the GMAIL setup properties with Hotmail or what    #
-# ever smtp mail service.                                                         #
-###################################################################################
+
+
+
 
 def emailalert():
-	print("Email being sent!")
 	# GMAIL user setup #
 	gmail_sender = 'johngrobinson@gmail.com'
 	gmail_passwd = 'Monkeybutt2'
@@ -64,7 +62,7 @@ def emailalert():
 	msg['From'] = gmail_sender
 	msg['To'] = you
 
-	b1 = '<html><head></head><body><p><br><br>Do you know where you daughter is?<br><br>Your front door was opened at: '
+	b1 = '<html><head></head><body><p><br>Do you know where you daughter is?<br><br>Your front door was opened at: '
 	b2 = door_timestamp(0)
 	b3 = ' </p><BR><BR><BR>The Alarm!<br><br>John Robinson</body></html>'
 
@@ -88,32 +86,24 @@ def emailalert():
 	server.sendmail(gmail_sender, [you], msg.as_string())
 	server.quit()
 	print('\nEmail has been sent!\n')
-	return True
+	time.sleep(30)
+	return
 
-# Define a threaded callback function to run in another thread when events are detected
-def my_callback():
-	if var == 1:
-		time.sleep(1.5)  # confirm the movement by waiting 1.5 sec
-		if GPIO.wait_for_edge(26, GPIO.FALLING):  # and check again the input
-			print("Door Open! ", GPIO.event_detected(26))
-			emailalert()
-			# removes the event detection on PIN 26
-			GPIO.remove_event_detect(26)
-			# wait for up to 5 seconds for a rising edge (timeout is in milliseconds)
-			GPIO.wait_for_edge(26, GPIO.RISING)
-			print("Door Closed! ")
-			time.sleep(5)
-		else:
-			time.sleep(15)
-			pass
+def gpio_falling(pin):
+	time.sleep(5)
+	print('\nEvent detected\n')
+	emailalert()
+	return
 
-while True:
-
-	print('Output is cleared - ', GPIO.input(26))
-	GPIO.add_event_detect(26, GPIO.FALLING, callback=my_callback, bouncetime=300)
+GPIO.add_event_callback(26, gpio_falling)
 
 
 
-
-
-
+try:
+	print('started...\n')
+	print(GPIO.input(26))
+	while True:
+		time.sleep(1)
+except KeyboardInterrupt:
+	GPIO.cleanup()       # clean up GPIO on CTRL+C exit
+GPIO.cleanup()           # clean up GPIO on normal exit
